@@ -22,7 +22,7 @@ let arduinos;
 let api_keys;
 app = express();
 let restApiPort = process.env.PORT || 8090;
-let tcpServerPort = process.env.PORT || 1337;
+let tcpServerPort = 1337;
 
 app.use(bodyParser.json());
 
