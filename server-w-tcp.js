@@ -22,7 +22,7 @@ let arduinos;
 let api_keys;
 app = express();
 let restApiPort = process.env.PORT || 8090;
-let tcpServerPort = 1337;
+let tcpServerPort = process.env.PORT || 1337;
 
 app.use(bodyParser.json());
 
@@ -217,6 +217,8 @@ send404 = function(res){
 
 server.listen(restApiPort);
 
+console.log('Rest Api Port : ' + restApiPort);
+
 
 
 // socket.io, I choose you
@@ -291,4 +293,5 @@ tcpServer.on('connection',function(socket){
     })
 });
 tcpServer.listen(tcpServerPort);
+console.log('TCP Port : ' + tcpServerPort);
 
