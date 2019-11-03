@@ -266,7 +266,7 @@ var tcpServer = net.createServer(function (socket) {
 
 tcpServer.on('connection',function(socket){
     socket.write('connected to the tcp server\r\n');
-    console.log('num of connections on port 1337: ' + tcpServer.connections);
+    console.log('num of connections on port ' + tcpServerPort + ' : ' + tcpServer.connections);
     
     tcpGuests.push(socket);
     
