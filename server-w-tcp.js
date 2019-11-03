@@ -30,6 +30,7 @@ app.use((req, res, next) => {
   res.append("Access-Control-Allow-Headers", "Origin, Accept,Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
   res.append('Access-Control-Allow-Credentials', true);
   next();
+
 });
 
 
@@ -65,7 +66,7 @@ app.post('/api/register', (req, res, next) => {
           if(Users[i].username == user.username)
           count++;
       }
-      // Add user if not already signed up
+      //  sdd Add user if not already signed up
       if(count == 0){
           users.insert(user, (err, User) => {
               if(err){
