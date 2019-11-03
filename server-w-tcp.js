@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 
 const MongoClient = mongodb.MongoClient;
 
-MongoClient.connect('mongodb://oguz.ulku:Ou.1301171025@ds311128.mlab.com:11128/heroku_mj4zvqd1', (err, Database) => {
+MongoClient.connect('mongodb://oguz.ulku:Ou.1301171025@ds311128.mlab.com:11128/heroku_mj4zvqd1', {useUnifiedTopology: true}, (err, Database) => {
     if(err) {
         console.log(err);
         return false;
