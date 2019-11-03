@@ -21,6 +21,8 @@ let users;
 let arduinos;
 let api_keys;
 app = express();
+let restApiPort = process.env.PORT || 8090;
+let tcpServerPort = process.env.PORT || 1337;
 
 app.use(bodyParser.json());
 
@@ -213,7 +215,7 @@ send404 = function(res){
   res.end();
 };
 
-server.listen(8090);
+server.listen(restApiPort);
 
 
 
@@ -288,5 +290,5 @@ tcpServer.on('connection',function(socket){
         }
     })
 });
-tcpServer.listen(1337);
+tcpServer.listen(tcpServerPort);
 
