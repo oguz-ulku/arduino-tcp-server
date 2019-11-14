@@ -22,7 +22,8 @@ let arduinos;
 let api_keys;
 app = express();
 let restApiPort =  8090;
-let tcpServerPort = process.env.PORT || 1337;
+let tcpServerPort = process.env.PORT || 80;
+
 
 app.use(bodyParser.json());
 
@@ -267,7 +268,9 @@ var tcpServer = net.createServer(function (socket) {
 tcpServer.on('connection',function(socket){
     socket.write('connected to the tcp server\r\n');
     console.log('num of connections on port ' + tcpServerPort + ' : ' + tcpServer.connections);
-    
+    tcpServer.getConnections(function(err, count){
+      console.log("count", count);
+  })
     tcpGuests.push(socket);
     
     socket.on('data',function(data){
