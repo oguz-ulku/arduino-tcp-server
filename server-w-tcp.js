@@ -12,7 +12,8 @@ var http = require('http')
   , sys = require(process.binding('natives').util ? 'util' : 'sys')
   , server
   , express = require('express')
-  , HashMap = require('hashmap');
+  , HashMap = require('hashmap')
+  , ObjectID = require('mongodb').ObjectID; ;
   
 var tcpGuests = [];
 var chatGuests = [];
@@ -20,9 +21,10 @@ var arduinoList = new HashMap();
 let users;
 let arduinos;
 let api_keys;
+let type_list;
 app = express();
 let restApiPort =  8090;
-let tcpServerPort = process.env.PORT || 80;
+let tcpServerPort = process.env.PORT || 1337;
 
 
 app.use(bodyParser.json());
@@ -39,25 +41,24 @@ app.use((req, res, next) => {
 
 const MongoClient = mongodb.MongoClient;
 
-MongoClient.connect('mongodb://oguz.ulku:Ou.1301171025@ds311128.mlab.com:11128/heroku_mj4zvqd1', {useUnifiedTopology: true}, (err, Database) => {
+MongoClient.connect('mongodb://127.0.0.1:27017', {useUnifiedTopology: true}, (err, Database) => {
     if(err) {
         console.log(err);
         return false;
     }
     console.log("Connected to MongoDB");
-    const db = Database.db("heroku_mj4zvqd1");
+    const db = Database.db("arduino-tcp-server-db");
     users = db.collection("users");
     arduinos = db.collection("arduinos");
     api_keys = db.collection("api-keys");
-
+    type_lists = db.collection("arduino-type-list");
 
 }); 
 
-app.post('/api/register', (req, res, next) => {
+app.post('/api/check-user-name', (req, res, next) => {
+  let errorResult = '';
   let user = {
-      username: req.body.username,
-      email: req.body.email,
-      password: req.body.password
+      userName: req.body.userName
   };
   let count = 0;    
   users.find({}).toArray((err, Users) => {
@@ -66,8 +67,88 @@ app.post('/api/register', (req, res, next) => {
           return res.status(500).send(err);
       }
       for(let i = 0; i < Users.length; i++){
-          if(Users[i].username == user.username)
-          count++;
+          if(Users[i].userName == user.userName){
+            count++;
+            errorResult = 'User name : ' + user.userName + ' allready exist.'
+            break;
+          }
+           
+      }
+      //  sdd Add user if not already signed up
+      if(count == 0){
+        errorResult = 'User name : ' + user.userName + ' usable.'
+        res.json({ userNameCheck: true, message: errorResult });
+      }
+      else {
+          // Alert message logic here
+          res.json({ userNameCheck: false, message: errorResult });
+      }
+  });
+  
+});
+
+app.post('/api/check-email', (req, res, next) => {
+  let errorResult = '';
+  let user = {
+      email: req.body.email
+  };
+  let count = 0;    
+  users.find({}).toArray((err, Users) => {
+      if (err) {
+          console.log(err);
+          return res.status(500).send(err);
+      }
+      for(let i = 0; i < Users.length; i++){
+          if(Users[i].email == user.email){
+            count++;
+            errorResult = 'E-mail address : ' + user.email + ' allready exist.'
+            break;
+          }
+           
+      }
+      //  sdd Add user if not already signed up
+      if(count == 0){
+        errorResult = 'E-mail address : ' + user.email + ' usable.'
+        res.json({ emailCheck: true, message: errorResult });
+      }
+      else {
+          // Alert message logic here
+          res.json({ emailCheck: false, message: errorResult });
+      }
+  });
+  
+});
+
+app.post('/api/register', (req, res, next) => {
+  let errorResult = '';
+  let user = {
+      userName: req.body.userName,
+      email: req.body.email,
+      password: req.body.password,
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      role: req.body.role,
+      token: req.body.token,
+      isActive: req.body.isActive
+  };
+  let count = 0;    
+  users.find({}).toArray((err, Users) => {
+      if (err) {
+          console.log(err);
+          return res.status(500).send(err);
+      }
+      for(let i = 0; i < Users.length; i++){
+          if(Users[i].userName == user.userName){
+            count++;
+            errorResult = 'User name : ' + user.userName + ' allready exist.'
+            break;
+          }
+           
+          if(Users[i].email == user.email){
+            count++;
+            errorResult = 'E-mail address : ' + user.email + ' allready exist.'
+            break;
+          }
       }
       //  sdd Add user if not already signed up
       if(count == 0){
@@ -80,34 +161,47 @@ app.post('/api/register', (req, res, next) => {
       }
       else {
           // Alert message logic here
-          res.json({ user_already_signed_up: true });
+          res.json({ user_already_signed_up: true, message: errorResult });
       }
   });
   
 });
 
+
+
 app.post('/api/login', (req, res) => {
   let isPresent = false;
   let correctPassword = false;
+  let isActive = false;
   let loggedInUser;
 
   users.find({}).toArray((err, users) => {
       if(err) return res.send(err);
       users.forEach((user) => {
-          if((user.username == req.body.username)) {
+          if((user.userName == req.body.userName)) {
               if(user.password == req.body.password) {
+                if(user.isActive == true){
                   isPresent = true;
                   correctPassword = true;
+                  isActive = true;
                   loggedInUser = {
-                      username: user.username,
-                      email: user.email
-                  }    
-              } else {
+                      userName: user.userName,
+                      email: user.email,
+                      role: user.role,
+                      firstName: user.firstName,
+                      lastName: user.lastName,
+                      password: user.password,
+                      isActive: user.isActive,
+                      token: user.token
+                  }
+                }
+              }
+              else {
                   isPresent = true;
               }
           }
       });
-          res.json({ isPresent: isPresent, correctPassword: correctPassword, user: loggedInUser });
+          res.json({ isPresent: isPresent, correctPassword: correctPassword, isActive: isActive, user: loggedInUser });
   });
 });
 
@@ -172,16 +266,47 @@ arduinos.find({}).toArray((err, Arduino) => {
 });
 });
 
+app.post('/api/arduino/update-arduino', (req, res) => {
+ 
+  let arduino = {
+    arduinoid: req.body.arduinoid,
+    username: req.body.username,
+    arduinoname: req.body.arduinoname,
+    arduinoapikey: req.body.arduinoapikey,
+    arduinotype: req.body.arduinotype,
+    arduinoactive: req.body.arduinoactive,
+    arduinocommand: req.body.arduinocommand
+};
+let count = 0;    
+let newvalues = { $set: {
+  username: arduino.username, 
+  arduinoname: arduino.arduinoname,
+  arduinoapikey: arduino.arduinoapikey,
+  arduinotype: arduino.arduinotype,
+  arduinoactive: arduino.arduinoactive,
+  arduinocommand: arduino.arduinocommand } };
+let query = { _id: ObjectID(arduino.arduinoid)};
+arduinos.find({}).toArray((err, Arduino) => {
+    if (err) {
+        console.log(err);
+        return res.status(500).send(err);
+    }
+   
+        arduinos.updateOne(query, newvalues, (err, Arduino) => {
+            if(err){
+                res.send(err);
+            }
+            res.json(Arduino);
+        });
+    
+   
+});
+});
+
 
 app.post('/api/arduino/get-arduino', (req, res) => {
- 
- 
-
 let arduinoList = [];
-  
-
-
- 
+let arduinoTypeValue = '';
 arduinos.find({}).toArray((err, arduinos) => {
   if(err) return res.send(err);
   arduinos.forEach((arduino) => {
@@ -208,6 +333,98 @@ arduinos.find({}).toArray((err, arduinos) => {
 });
 });
 
+app.post('/api/arduino/type-list', (req, res) => {
+  let typeList = [];
+  type_lists.find({}).toArray((err, type_lists) => {
+    if(err) return res.send(err);
+    type_lists.forEach((type) => {
+      let _typeList = {
+        id:'',
+        key:'',
+        value:''};
+          _typeList.id = type._id.toString();
+          _typeList.key = type.key;
+          _typeList.value = type.value;
+          typeList.push(_typeList);
+        
+    });
+        res.json({ typeList: typeList });
+  });
+  });
+
+  app.post('/api/arduino/get-user-list', (req, res) => {
+    let userList = [];
+    users.find({}).toArray((err, users) => {
+      if(err) return res.send(err);
+      users.forEach((user) => {
+        let _userList = {
+          id: '',
+          userName: '',
+          email: '',
+          password: '',
+          firstName: '',
+          lastName: '',
+          role: '',
+          token: '',
+          isActive: false
+      };
+          _userList.id = user._id.toString();
+          _userList.firstName = user.firstName;
+          _userList.lastName = user.lastName;
+          _userList.userName = user.userName;
+          _userList.email = user.email;
+          _userList.password = user.password;
+          _userList.role = user.role;
+          _userList.token = user.token;
+          _userList.isActive = user.isActive;
+            userList.push(_userList);
+          
+      });
+          res.json({ userList: userList });
+    });
+    });
+
+    app.post('/api/arduino/update-user', (req, res) => {
+ 
+      let user = {
+        id: req.body.id,
+        userName: req.body.userName,
+        password: req.body.password,
+        firstName: req.body.firstName,
+        lastName: req.body.lastName,
+        email: req.body.email,
+        role: req.body.role,
+        token: req.body.token,
+        isActive: req.body.isActive
+    };
+    let count = 0;    
+    let newvalues = { $set: {
+      username: user.userName, 
+      password: user.password,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      token: user.token,
+      isActive: user.isActive } };
+    let query = { _id: ObjectID(user.id)};
+    users.find({}).toArray((err, User) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send(err);
+        }
+       
+            users.updateOne(query, newvalues, (err, User) => {
+                if(err){
+                    res.send(err);
+                }
+                res.json(User);
+            });
+        
+       
+    });
+    });
+
 server = http.Server(app),
 
 send404 = function(res){
@@ -229,12 +446,12 @@ var io = io.listen(server)
   
 io.on('connection', function(client){
   client.send({ buffer: buffer });
-  client.broadcast.send({ announcement: client.sessionId + ' connected' });
+  client.broadcast.send({ announcement: client.id + ' connected' });
   
   chatGuests.push(client);
   
   client.on('message', function(message){
-    var msg = { message: [client.sessionId, message] };
+    var msg = { message: [client.id, message] };
     buffer.push(msg);
     if (buffer.length > 15) buffer.shift();
     client.broadcast.send(msg);
@@ -276,13 +493,19 @@ tcpServer.on('connection',function(socket){
     socket.on('data',function(data){
         console.log('received on tcp socket:'+data);
         socket.write('msg received\r\n');
-        arduinoList.set(data.toString().trim() , socket)
+        if(!data.toString().search('val')){
+          console.log('value :  ' + data.toString());
+        }
+        else{
+          arduinoList.set(data.toString().trim() , socket)
+        }
+      
         
         for (g in chatGuests) {
           var client = chatGuests[g];
-          client.send({message:["data",data.toString('ascii',0,data.length)]});
+          //client.send({message:["data",data.toString('ascii',0,data.length)]});
           client.emit('message',{
-            greeting: 'Hello Oguz.'
+            greeting: data.toString()
         });
           
       }
